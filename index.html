@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Safari Game — Technology In Action | iMinder</title>
+  <meta name="description" content="Safari Game at Technology In Action conference by iMinder">
+  <meta name="theme-color" content="#06060f">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&family=Orbitron:wght@700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- 🔥 FIREBASE — Βάλε τα δικά σου config values παρακάτω     -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, get, onValue, update, child }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    // ╔═══════════════════════════════════════════════════════════╗
+    // ║  ⚠️  ΑΝΤΙΚΑΤΑΣΤΗΣΕ ΜΕ ΤΑ ΔΙΚΑ ΣΟΥ FIREBASE CONFIG      ║
+    // ║  Βήματα: console.firebase.google.com → New Project →     ║
+    // ║  Realtime Database → Create → Start in Test Mode →       ║
+    // ║  Project Settings → Your Apps → Web App → Copy config    ║
+    // ╚═══════════════════════════════════════════════════════════╝
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Expose to global scope for the app
+    window.DB = { db, ref, set, get, onValue, update, child };
+    window.dispatchEvent(new Event("firebase-ready"));
+  </script>
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', 'Segoe UI', sans-serif;
+      background: #06060f; color: #fff;
+      min-height: 100vh; overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+    button { font-family: 'Poppins', sans-serif; }
+
+    /* Animations */
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes floatBubble { 0% { transform:translateY(0) scale(1); opacity:.3; } 100% { transform:translateY(-40px) scale(1.15); opacity:.6; } }
+    @keyframes twinkle { 0%,100% { opacity:.2; transform:scale(1); } 50% { opacity:.8; transform:scale(1.5); } }
+    @keyframes confettiFall { 0% { transform:translateY(0) rotate(0deg); opacity:1; } 100% { transform:translateY(100vh) rotate(720deg); opacity:0; } }
+    @keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.05); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .fadeInUp { animation: fadeInUp 0.5s ease; }
+
+    /* Pages hidden by default */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════ HOME PAGE ═══════════════════ -->
+  <div id="page-home" class="page active">
+    <div id="home-bg" class="animated-bg"></div>
+    <div style="position:relative;z-index:10;max-width:700px;margin:0 auto;padding:40px 24px">
+      <!-- Logos -->
+      <div style="text-align:center;margin-bottom:40px">
+        <div style="display:flex;justify-content:center;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:28px">
+          <div class="logo-academy"></div>
+          <div class="logo-iminder"></div>
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(56,189,248,0.1);border-radius:50px;padding:8px 20px;margin-bottom:20px;border:1px solid rgba(56,189,248,0.25)">
+          <span style="font-size:13px;color:#38bdf8;font-weight:600;letter-spacing:2px;text-transform:uppercase">🎮 Safari Game</span>
+        </div>
+        <h1 style="font-family:'Orbitron',sans-serif;font-size:clamp(28px,5vw,40px);font-weight:900;margin:0 0 12px;letter-spacing:2px;background:linear-gradient(135deg,#38bdf8,#818cf8,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent">
+          Technology In Action
+        </h1>
+        <p style="color:rgba(255,255,255,0.5);font-size:16px;margin:0 0 32px">
+          Powered by <strong style="color:#38bdf8">iMinder</strong>
+        </p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button onclick="showPage('admin')" style="padding:16px 32px;font-size:16px;font-weight:700;background:linear-gradient(135deg,#38bdf8,#818cf8);color:#fff;border:none;border-radius:14px;cursor:pointer;box-shadow:0 8px 32px rgba(56,189,248,0.3);letter-spacing:1px">
+            🏆 Admin Dashboard
+          </button>
+          <button onclick="toggleDemo()" id="btn-demo" style="padding:16px 32px;font-size:16px;font-weight:600;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.12);border-radius:14px;cursor:pointer">
+            📱 Demo Scan
+          </button>
+        </div>
+      </div>
+
+      <!-- Demo Grid -->
+      <div id="demo-section" style="display:none;animation:fadeInUp 0.4s ease">
+        <h2 style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.8);margin:0 0 16px;text-align:center">Επιλέξτε Περίπτερο</h2>
+        <div id="demo-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px"></div>
+      </div>
+
+      <!-- How it works -->
+      <div style="margin-top:40px;background:rgba(255,255,255,0.02);border-radius:20px;border:1px solid rgba(255,255,255,0.06);padding:32px">
+        <h3 style="font-family:'Orbitron',sans-serif;font-size:16px;color:#38bdf8;margin:0 0 20px;letter-spacing:1px">📖 Πώς λειτουργεί</h3>
+        <div class="steps-list"></div>
+      </div>
+      <p style="text-align:center;color:rgba(255,255,255,0.15);font-size:11px;margin-top:32px;letter-spacing:2px">© 2026 iMinder • Technology In Action</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ SCAN PAGE ═══════════════════ -->
+  <div id="page-scan" class="page">
+    <div id="scan-bg" class="animated-bg"></div>
+    <div id="confetti-container"></div>
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div id="scan-card" style="position:relative;z-index:10;width:min(440px,92vw);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:28px;padding:40px 32px;text-align:center">
+        <div id="scan-logo-area" style="margin-bottom:24px"></div>
+        <div id="scan-badge" style="display:inline-flex;align-items:center;gap:8px;border-radius:50px;padding:8px 20px;margin-bottom:20px"></div>
+        <div id="scan-booth-icon" style="font-size:48px;margin:0 auto 12px;width:80px;height:80px;display:flex;align-items:center;justify-content:center;border-radius:20px"></div>
+        <h1 id="scan-booth-name" style="font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;color:#fff;margin:0 0 4px;letter-spacing:1px"></h1>
+        <p id="scan-booth-cat" style="font-size:13px;font-weight:600;margin:0 0 28px;letter-spacing:0.5px"></p>
+        <div id="scan-divider" style="height:1px;margin:0 0 24px"></div>
+        <div id="scan-content"></div>
+        <div style="margin-top:28px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.08)">
+          <p style="color:rgba(255,255,255,0.25);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0">Technology In Action • iMinder</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ ADMIN PAGE ═══════════════════ -->
+  <div id="page-admin" class="page">
+    <div style="background:linear-gradient(180deg,rgba(56,189,248,0.08) 0%,transparent 100%);border-bottom:1px solid rgba(255,255,255,0.06);padding:24px 24px 20px">
+      <div style="max-width:900px;margin:0 auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div class="logo-academy" data-size="small"></div>
+            <div>
+              <h1 style="font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;margin:0 0 2px;letter-spacing:2px;color:#38bdf8">🏆 SAFARI GAME</h1>
+              <p style="color:rgba(255,255,255,0.4);font-size:12px;margin:0;letter-spacing:1px">Technology In Action • Admin Panel</p>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onclick="loadAdminData()" style="padding:10px 18px;font-size:13px;font-weight:600;background:rgba(255,255,255,0.06);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);border-radius:10px;cursor:pointer">🔄 Ανανέωση</button>
+            <button onclick="exportCSV()" style="padding:10px 18px;font-size:13px;font-weight:600;background:rgba(255,255,255,0.06);color:#64ffda;border:1px solid rgba(100,255,218,0.3);border-radius:10px;cursor:pointer">📥 Export CSV</button>
+            <button onclick="showPage('home')" style="padding:10px 18px;font-size:13px;font-weight:600;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:10px;cursor:pointer">← Πίσω</button>
+          </div>
+        </div>
+        <!-- Stats -->
+        <div id="admin-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:20px"></div>
+      </div>
+    </div>
+    <div style="max-width:900px;margin:0 auto;padding:24px">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
+        <button onclick="setAdminView('leaderboard')" id="btn-leaderboard" class="admin-tab active-tab" style="padding:10px 20px;font-size:14px;font-weight:600;border-radius:10px;cursor:pointer">🏅 Κατάταξη</button>
+        <button onclick="setAdminView('detail')" id="btn-detail" class="admin-tab" style="padding:10px 20px;font-size:14px;font-weight:600;border-radius:10px;cursor:pointer">📋 Αναλυτικά</button>
+        <input id="admin-search" placeholder="🔍 ID..." oninput="filterAdmin()" style="margin-left:auto;padding:10px 16px;font-size:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;outline:none;width:140px;font-family:'JetBrains Mono',monospace">
+      </div>
+      <div id="admin-content"></div>
+    </div>
+  </div>
+
+<script>
+// ═══════════════════ CONFIGURATION ═══════════════════
+
+// 🔧 LOGO URLs — Βάλε τα πραγματικά URLs αν τα έχεις
+const LOGO_CONFIG = {
+  barcode1_logo: null, // iMinder Academy logo URL
+  barcode2_logo: null, // iMinder logo URL
+};
+
+const BOOTHS = [
+  { id:"booth1", name:"CyberShield Pro", category:"Cyber Security", icon:"🛡️", color:"#0f172a", accent:"#38bdf8" },
+  { id:"booth2", name:"AutoParts Hub", category:"Ανταλλακτικά Αυτοκινήτων", icon:"🚗", color:"#1a1a2e", accent:"#e94560" },
+  { id:"booth3", name:"LogiFlow WMS", category:"WMS Services", icon:"📦", color:"#0d1b2a", accent:"#00b4d8" },
+  { id:"booth4", name:"TransRoute TMS", category:"TMS Services", icon:"🚛", color:"#1b2838", accent:"#f77f00" },
+  { id:"booth5", name:"IoT Connect", category:"IoT Services", icon:"📡", color:"#0a192f", accent:"#64ffda" },
+  { id:"booth6", name:"TalentForce HR", category:"HR Services", icon:"👥", color:"#1a0a2e", accent:"#bd93f9" },
+  { id:"booth7", name:"NeuralWave AI", category:"AI Solutions", icon:"🤖", color:"#0f0f23", accent:"#ff6b6b" },
+  { id:"booth8", name:"CloudNest", category:"Cloud Infrastructure", icon:"☁️", color:"#0c1821", accent:"#58a6ff" },
+  { id:"booth9", name:"DataVault Analytics", category:"Data Analytics", icon:"📊", color:"#1a1423", accent:"#f9c74f" },
+];
+
+const POINTS_BC1 = 10, POINTS_BC2 = 10;
+let adminData = {}, adminView = "leaderboard", selectedVisitor = null, firebaseReady = false;
+
+// ═══════════════════ FIREBASE HELPERS ═══════════════════
+
+function waitForFirebase() {
+  return new Promise(resolve => {
+    if (window.DB) { firebaseReady = true; resolve(); }
+    else window.addEventListener("firebase-ready", () => { firebaseReady = true; resolve(); });
+  });
+}
+
+async function saveVisitor(visitorId, visitorData) {
+  if (!firebaseReady) await waitForFirebase();
+  const { db, ref, set } = window.DB;
+  await set(ref(db, `visitors/${visitorId}`), visitorData);
+}
+
+async function getVisitor(visitorId) {
+  if (!firebaseReady) await waitForFirebase();
+  const { db, ref, get: fbGet, child } = window.DB;
+  const snap = await fbGet(child(ref(db), `visitors/${visitorId}`));
+  return snap.exists() ? snap.val() : null;
+}
+
+async function getAllVisitors() {
+  if (!firebaseReady) await waitForFirebase();
+  const { db, ref, get: fbGet } = window.DB;
+  const snap = await fbGet(ref(db, "visitors"));
+  return snap.exists() ? snap.val() : {};
+}
+
+function listenVisitors(callback) {
+  if (!firebaseReady) return;
+  const { db, ref, onValue } = window.DB;
+  onValue(ref(db, "visitors"), snap => {
+    callback(snap.exists() ? snap.val() : {});
+  });
+}
+
+// ═══════════════════ LOGO COMPONENTS ═══════════════════
+
+function renderLogo(type, size) {
+  const isLarge = size === "large";
+  if (type === "academy") {
+    if (LOGO_CONFIG.barcode1_logo) {
+      return `<img src="${LOGO_CONFIG.barcode1_logo}" alt="iMinder Academy" style="max-width:${isLarge?280:200}px;max-height:${isLarge?110:70}px;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.3))">`;
+    }
+    return `<div style="display:inline-flex;flex-direction:column;align-items:center;padding:${isLarge?'22px 40px':'14px 28px'};background:linear-gradient(135deg,rgba(0,71,171,0.92),rgba(0,40,100,0.96));border-radius:18px;border:2px solid rgba(255,255,255,0.15);box-shadow:0 8px 32px rgba(0,71,171,0.4),inset 0 1px 0 rgba(255,255,255,0.1);position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,0.08),transparent);border-radius:16px 16px 0 0"></div>
+      <span style="font-family:'Poppins',sans-serif;font-size:${isLarge?36:24}px;font-weight:900;color:#fff;letter-spacing:2px;line-height:1;position:relative;z-index:1"><span style="color:#5bb8ff">i</span>Minder</span>
+      <span style="font-family:'Poppins',sans-serif;font-size:${isLarge?14:10}px;font-weight:600;color:rgba(255,255,255,0.7);letter-spacing:6px;text-transform:uppercase;margin-top:4px;position:relative;z-index:1">Academy</span>
+    </div>`;
+  } else {
+    if (LOGO_CONFIG.barcode2_logo) {
+      return `<img src="${LOGO_CONFIG.barcode2_logo}" alt="iMinder" style="max-width:${isLarge?280:200}px;max-height:${isLarge?110:70}px;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.3))">`;
+    }
+    return `<div style="display:inline-flex;flex-direction:column;align-items:center;padding:${isLarge?'22px 40px':'14px 28px'};background:linear-gradient(135deg,rgba(220,60,30,0.92),rgba(170,35,15,0.96));border-radius:18px;border:2px solid rgba(255,255,255,0.15);box-shadow:0 8px 32px rgba(220,60,30,0.4),inset 0 1px 0 rgba(255,255,255,0.1);position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,0.1),transparent);border-radius:16px 16px 0 0"></div>
+      <span style="font-family:'Poppins',sans-serif;font-size:${isLarge?36:24}px;font-weight:900;color:#fff;letter-spacing:2px;line-height:1;position:relative;z-index:1"><span style="color:#ffb347">i</span>Minder</span>
+      <span style="font-family:'Poppins',sans-serif;font-size:${isLarge?11:9}px;font-weight:600;color:rgba(255,255,255,0.6);letter-spacing:4px;text-transform:uppercase;margin-top:4px;position:relative;z-index:1">Consulting & Advisory</span>
+    </div>`;
+  }
+}
+
+// ═══════════════════ PAGE NAVIGATION ═══════════════════
+
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  if (page === 'admin') loadAdminData();
+  window.scrollTo(0, 0);
+}
+
+function showScan(boothId, barcodeType) {
+  const booth = BOOTHS.find(b => b.id === boothId);
+  if (!booth) return;
+  renderScanPage(booth, barcodeType);
+  showPage('scan');
+}
+
+// ═══════════════════ SCAN PAGE ═══════════════════
+
+function renderScanPage(booth, barcodeType) {
+  const isType2 = barcodeType === 2;
+  const accent = isType2 ? "#bd93f9" : booth.accent;
+  const pts = barcodeType === 1 ? POINTS_BC1 : POINTS_BC2;
+
+  // Background
+  const bg = document.getElementById('scan-bg');
+  bg.style.background = isType2
+    ? `linear-gradient(135deg, ${booth.color} 0%, #1a0a2e 50%, ${booth.accent}33 100%)`
+    : `linear-gradient(135deg, ${booth.color} 0%, ${booth.color} 100%)`;
+  bg.innerHTML = generateBubbles(booth.accent, isType2);
+
+  // Card styling
+  const card = document.getElementById('scan-card');
+  card.style.background = isType2 ? "rgba(26,10,46,0.85)" : "rgba(255,255,255,0.06)";
+  card.style.border = `2px solid ${isType2 ? "rgba(189,147,249,0.3)" : booth.accent+"44"}`;
+  card.style.boxShadow = isType2 ? "0 0 80px rgba(189,147,249,0.15),0 24px 48px rgba(0,0,0,0.5)" : `0 0 60px ${booth.accent}22,0 24px 48px rgba(0,0,0,0.4)`;
+
+  // Logo
+  document.getElementById('scan-logo-area').innerHTML = renderLogo(isType2 ? 'iminder' : 'academy', 'large');
+
+  // Badge
+  const badge = document.getElementById('scan-badge');
+  badge.style.background = isType2 ? "rgba(189,147,249,0.15)" : "rgba(255,255,255,0.08)";
+  badge.style.border = `1px solid ${isType2 ? "rgba(189,147,249,0.35)" : booth.accent+"55"}`;
+  badge.innerHTML = `<span style="font-size:13px;color:${accent};font-weight:600;letter-spacing:1px;text-transform:uppercase">${isType2 ? "🎁 Bonus — Διαφημιστικό" : "📍 Επίσκεψη Περιπτέρου"}</span>`;
+
+  // Booth icon
+  const icon = document.getElementById('scan-booth-icon');
+  icon.style.background = isType2 ? "linear-gradient(135deg,rgba(189,147,249,0.15),rgba(189,147,249,0.3))" : `linear-gradient(135deg,${booth.accent}22,${booth.accent}44)`;
+  icon.style.border = `2px solid ${isType2 ? "rgba(189,147,249,0.4)" : booth.accent+"66"}`;
+  icon.textContent = booth.icon;
+
+  document.getElementById('scan-booth-name').textContent = booth.name;
+  const catEl = document.getElementById('scan-booth-cat');
+  catEl.textContent = booth.category;
+  catEl.style.color = accent;
+
+  document.getElementById('scan-divider').style.background = `linear-gradient(90deg,transparent,${accent}66,transparent)`;
+
+  // Input form
+  document.getElementById('scan-content').innerHTML = `
+    <p style="color:rgba(255,255,255,0.7);font-size:15px;margin:0 0 20px;line-height:1.5">Εισάγετε τον αριθμό συμμετοχής σας</p>
+    <div style="position:relative;margin-bottom:24px">
+      <input id="visitor-input" type="number" inputmode="numeric" placeholder="π.χ. 123" autofocus
+        style="width:100%;box-sizing:border-box;padding:18px 24px;font-size:24px;font-weight:700;font-family:'Orbitron',monospace;text-align:center;letter-spacing:4px;background:rgba(0,0,0,0.3);border:2px solid ${isType2?"rgba(189,147,249,0.4)":booth.accent+"66"};border-radius:16px;color:#fff;outline:none;transition:border-color 0.3s,box-shadow 0.3s">
+    </div>
+    <button id="btn-submit" onclick="handleScan('${booth.id}',${barcodeType})"
+      style="width:100%;padding:18px;font-size:18px;font-weight:700;background:${isType2?"linear-gradient(135deg,#bd93f9,#8b5cf6)":`linear-gradient(135deg,${booth.accent},${booth.accent}cc)`};color:#fff;border:none;border-radius:16px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:all 0.3s;box-shadow:${isType2?"0 8px 24px rgba(189,147,249,0.3)":`0 8px 24px ${booth.accent}44`}">
+      ✅ Done — +${pts} Πόντοι
+    </button>
+    <p style="color:rgba(255,255,255,0.35);font-size:12px;margin:16px 0 0;letter-spacing:0.5px">
+      ${isType2 ? "🎁 Barcode 2 — Bonus Διαφημιστικό" : "📍 Barcode 1 — Επίσκεψη Περιπτέρου"} • ${pts} πόντοι
+    </p>
+  `;
+
+  // Enter key handler
+  setTimeout(() => {
+    const inp = document.getElementById('visitor-input');
+    if (inp) {
+      inp.focus();
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') handleScan(booth.id, barcodeType); });
+    }
+  }, 100);
+}
+
+async function handleScan(boothId, barcodeType) {
+  const input = document.getElementById('visitor-input');
+  const btn = document.getElementById('btn-submit');
+  const visitorId = input?.value?.trim();
+  if (!visitorId) return;
+
+  btn.textContent = "⏳ Αποθήκευση...";
+  btn.disabled = true;
+
+  try {
+    let visitor = await getVisitor(visitorId);
+    if (!visitor) visitor = { scans: {}, totalPoints: 0 };
+
+    if (!visitor.scans) visitor.scans = {};
+    if (!visitor.scans[boothId]) visitor.scans[boothId] = { barcode1: false, barcode2: false };
+
+    const key = barcodeType === 1 ? "barcode1" : "barcode2";
+    if (visitor.scans[boothId][key]) {
+      showScanResult('duplicate', visitorId, barcodeType);
+      return;
+    }
+
+    visitor.scans[boothId][key] = true;
+    visitor.totalPoints += (barcodeType === 1 ? POINTS_BC1 : POINTS_BC2);
+    await saveVisitor(visitorId, visitor);
+    showScanResult('success', visitorId, barcodeType);
+  } catch (err) {
+    console.error(err);
+    showScanResult('error', visitorId, barcodeType);
+  }
+}
+
+function showScanResult(status, visitorId, barcodeType) {
+  const pts = barcodeType === 1 ? POINTS_BC1 : POINTS_BC2;
+  const content = document.getElementById('scan-content');
+
+  if (status === 'success') {
+    showConfetti();
+    content.innerHTML = `<div class="fadeInUp">
+      <div style="font-size:56px;margin:0 0 16px">🎉</div>
+      <h2 style="color:#64ffda;font-size:22px;font-weight:700;margin:0 0 8px;font-family:'Orbitron',sans-serif">+${pts} Πόντοι!</h2>
+      <p style="color:rgba(255,255,255,0.7);font-size:15px;margin:0 0 24px">Visitor <strong style="color:#fff">#${visitorId}</strong> — Καταγράφηκε επιτυχώς!</p>
+      <button onclick="showPage('home')" style="padding:14px 36px;font-size:16px;font-weight:600;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(100,255,218,0.4);border-radius:14px;cursor:pointer">Κλείσιμο</button>
+    </div>`;
+  } else if (status === 'duplicate') {
+    content.innerHTML = `<div class="fadeInUp">
+      <div style="font-size:56px;margin:0 0 16px">⚠️</div>
+      <h2 style="color:#fbbf24;font-size:20px;font-weight:700;margin:0 0 8px">Ήδη σκαναρισμένο!</h2>
+      <p style="color:rgba(255,255,255,0.7);font-size:15px;margin:0 0 24px">Ο αριθμός <strong>#${visitorId}</strong> έχει ήδη σκανάρει το Barcode ${barcodeType} σε αυτό το περίπτερο.</p>
+      <button onclick="showPage('home')" style="padding:14px 36px;font-size:16px;font-weight:600;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:14px;cursor:pointer">Κλείσιμο</button>
+    </div>`;
+  } else {
+    content.innerHTML = `<div class="fadeInUp">
+      <div style="font-size:56px;margin:0 0 16px">❌</div>
+      <h2 style="color:#ef4444;font-size:20px;font-weight:700;margin:0 0 8px">Σφάλμα</h2>
+      <p style="color:rgba(255,255,255,0.7);font-size:15px;margin:0 0 24px">Δεν αποθηκεύτηκε. Ελέγξτε τη σύνδεσή σας.</p>
+      <button onclick="showPage('home')" style="padding:14px 36px;font-size:16px;font-weight:600;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:14px;cursor:pointer">Πίσω</button>
+    </div>`;
+  }
+}
+
+// ═══════════════════ ADMIN DASHBOARD ═══════════════════
+
+async function loadAdminData() {
+  try {
+    adminData = await getAllVisitors();
+  } catch { adminData = {}; }
+  renderAdmin();
+}
+
+function setAdminView(v) {
+  adminView = v;
+  selectedVisitor = null;
+  document.querySelectorAll('.admin-tab').forEach(t => {
+    t.style.background = "rgba(255,255,255,0.04)";
+    t.style.color = "rgba(255,255,255,0.5)";
+    t.style.border = "1px solid rgba(255,255,255,0.08)";
+  });
+  const active = document.getElementById(`btn-${v}`);
+  active.style.background = "rgba(56,189,248,0.15)";
+  active.style.color = "#38bdf8";
+  active.style.border = "1px solid rgba(56,189,248,0.4)";
+  renderAdmin();
+}
+
+function filterAdmin() { renderAdmin(); }
+
+function getSorted() {
+  return Object.entries(adminData)
+    .map(([id, v]) => ({
+      id, totalPoints: v.totalPoints || 0,
+      boothsVisited: v.scans ? Object.keys(v.scans).length : 0,
+      scans: v.scans || {},
+      bc1: v.scans ? Object.values(v.scans).filter(s => s.barcode1).length : 0,
+      bc2: v.scans ? Object.values(v.scans).filter(s => s.barcode2).length : 0,
+    }))
+    .sort((a, b) => b.totalPoints - a.totalPoints || b.boothsVisited - a.boothsVisited);
+}
+
+function renderAdmin() {
+  const search = document.getElementById('admin-search')?.value || "";
+  const sorted = getSorted();
+  const filtered = search ? sorted.filter(v => v.id.includes(search)) : sorted;
+  const totalScans = sorted.reduce((s, v) => s + v.bc1 + v.bc2, 0);
+  const maxPts = sorted[0]?.totalPoints || 0;
+
+  // Stats
+  document.getElementById('admin-stats').innerHTML = [
+    { l:"Συμμετέχοντες", v:sorted.length, i:"👥", c:"#38bdf8" },
+    { l:"Συνολικά Scans", v:totalScans, i:"📱", c:"#64ffda" },
+    { l:"Μέγιστοι Πόντοι", v:maxPts, i:"🏆", c:"#fbbf24" },
+    { l:"Περίπτερα", v:9, i:"🏪", c:"#bd93f9" },
+  ].map(s => `<div style="background:rgba(255,255,255,0.03);border-radius:14px;padding:16px;border:1px solid rgba(255,255,255,0.06)">
+    <div style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">${s.i} ${s.l}</div>
+    <div style="font-size:28px;font-weight:900;color:${s.c};font-family:'Orbitron',sans-serif">${s.v}</div>
+  </div>`).join('');
+
+  const container = document.getElementById('admin-content');
+
+  if (adminView === 'leaderboard') {
+    if (filtered.length === 0) {
+      container.innerHTML = `<div style="text-align:center;padding:60px 20px;color:rgba(255,255,255,0.3)"><div style="font-size:48px;margin-bottom:16px">📭</div><p>${search?"Δεν βρέθηκε ID":"Κανένα scan ακόμα"}</p></div>`;
+      return;
+    }
+    container.innerHTML = filtered.map(v => {
+      const rank = sorted.indexOf(v) + 1;
+      const medal = rank===1?"🥇":rank===2?"🥈":rank===3?"🥉":`#${rank}`;
+      const barW = (v.totalPoints/180)*100;
+      return `<div onclick="selectedVisitor='${v.id}';setAdminView('detail')" style="background:${rank<=3?"rgba(251,191,36,0.04)":"rgba(255,255,255,0.02)"};border:1px solid ${rank<=3?"rgba(251,191,36,0.15)":"rgba(255,255,255,0.06)"};border-radius:14px;padding:16px 20px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:16px" onmouseover="this.style.background='rgba(56,189,248,0.06)'" onmouseout="this.style.background='${rank<=3?"rgba(251,191,36,0.04)":"rgba(255,255,255,0.02)"}'" >
+        <div style="font-size:${rank<=3?28:16}px;min-width:44px;text-align:center;font-weight:900;color:${rank<=3?"#fbbf24":"rgba(255,255,255,0.3)"};font-family:'Orbitron',sans-serif">${medal}</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+            <span style="font-size:18px;font-weight:700;color:#fff;font-family:'JetBrains Mono',monospace">ID: ${v.id}</span>
+            <span style="font-size:12px;color:rgba(255,255,255,0.35)">${v.boothsVisited}/9 • BC1:${v.bc1} • BC2:${v.bc2}</span>
+          </div>
+          <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden"><div style="height:100%;border-radius:3px;width:${barW}%;background:${rank===1?"linear-gradient(90deg,#fbbf24,#f59e0b)":rank<=3?"linear-gradient(90deg,#38bdf8,#818cf8)":"linear-gradient(90deg,rgba(255,255,255,0.2),rgba(255,255,255,0.1))"};transition:width 0.5s ease"></div></div>
+        </div>
+        <div style="font-size:24px;font-weight:900;color:${rank===1?"#fbbf24":"#38bdf8"};font-family:'Orbitron',sans-serif;min-width:70px;text-align:right">${v.totalPoints}<span style="font-size:11px;color:rgba(255,255,255,0.3);display:block;font-weight:400">πόντοι</span></div>
+      </div>`;
+    }).join('');
+  } else {
+    // Detail view
+    if (selectedVisitor && adminData[selectedVisitor]) {
+      const v = adminData[selectedVisitor];
+      container.innerHTML = `
+        <button onclick="selectedVisitor=null;renderAdmin()" style="padding:8px 16px;font-size:13px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;margin-bottom:20px">← Πίσω</button>
+        <div style="background:rgba(255,255,255,0.03);border-radius:16px;border:1px solid rgba(255,255,255,0.08);padding:24px">
+          <h2 style="font-family:'Orbitron',sans-serif;color:#38bdf8;margin:0 0 8px;font-size:20px">Visitor #${selectedVisitor}</h2>
+          <p style="color:rgba(255,255,255,0.4);margin:0 0 20px;font-size:14px">Σύνολο: <strong style="color:#fbbf24;font-size:18px">${v.totalPoints} πόντοι</strong> • ${v.scans?Object.keys(v.scans).length:0}/9 περίπτερα</p>
+          <div style="display:grid;gap:8px">${BOOTHS.map(b => {
+            const sc = v.scans?.[b.id];
+            return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;background:${sc?"rgba(56,189,248,0.04)":"rgba(255,255,255,0.01)"};border:1px solid ${sc?"rgba(56,189,248,0.15)":"rgba(255,255,255,0.04)"}">
+              <span style="font-size:24px">${b.icon}</span>
+              <div style="flex:1"><div style="font-size:14px;font-weight:600;color:${sc?"#fff":"rgba(255,255,255,0.25)"}">${b.name}</div><div style="font-size:11px;color:rgba(255,255,255,0.35)">${b.category}</div></div>
+              <div style="display:flex;gap:6px">
+                <span style="padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;background:${sc?.barcode1?"rgba(100,255,218,0.15)":"rgba(255,255,255,0.04)"};color:${sc?.barcode1?"#64ffda":"rgba(255,255,255,0.2)"};border:1px solid ${sc?.barcode1?"rgba(100,255,218,0.3)":"rgba(255,255,255,0.06)"}">BC1 ${sc?.barcode1?"✓":"—"}</span>
+                <span style="padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;background:${sc?.barcode2?"rgba(189,147,249,0.15)":"rgba(255,255,255,0.04)"};color:${sc?.barcode2?"#bd93f9":"rgba(255,255,255,0.2)"};border:1px solid ${sc?.barcode2?"rgba(189,147,249,0.3)":"rgba(255,255,255,0.06)"}">BC2 ${sc?.barcode2?"✓":"—"}</span>
+              </div>
+            </div>`;
+          }).join('')}</div>
+        </div>`;
+    } else {
+      container.innerHTML = `<p style="color:rgba(255,255,255,0.5);font-size:14px;margin-bottom:16px">Επιλέξτε συμμετέχοντα:</p>` +
+        filtered.map(v => `<div onclick="selectedVisitor='${v.id}';renderAdmin()" style="display:flex;align-items:center;gap:12px;padding:14px 18px;margin-bottom:6px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(56,189,248,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+          <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#fff;font-size:16px">#${v.id}</span>
+          <span style="color:rgba(255,255,255,0.4);font-size:13px">${v.totalPoints}π • ${v.boothsVisited} περίπτ.</span>
+          <span style="margin-left:auto;color:rgba(255,255,255,0.2);font-size:18px">→</span>
+        </div>`).join('');
+    }
+  }
+}
+
+// ═══════════════════ CSV EXPORT ═══════════════════
+
+function exportCSV() {
+  const sorted = getSorted();
+  if (sorted.length === 0) { alert("Δεν υπάρχουν δεδομένα!"); return; }
+
+  let csv = "ID,Total Points,Booths Visited,BC1 Count,BC2 Count";
+  BOOTHS.forEach(b => { csv += `,${b.name} BC1,${b.name} BC2`; });
+  csv += "\n";
+
+  sorted.forEach(v => {
+    csv += `${v.id},${v.totalPoints},${v.boothsVisited},${v.bc1},${v.bc2}`;
+    BOOTHS.forEach(b => {
+      const sc = v.scans[b.id];
+      csv += `,${sc?.barcode1?"✓":"—"},${sc?.barcode2?"✓":"—"}`;
+    });
+    csv += "\n";
+  });
+
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `safari_game_results_${new Date().toISOString().slice(0,10)}.csv`;
+  link.click();
+}
+
+// ═══════════════════ CONFETTI ═══════════════════
+
+function showConfetti() {
+  const container = document.getElementById('confetti-container');
+  container.innerHTML = '';
+  container.style.cssText = 'position:fixed;inset:0;z-index:999;pointer-events:none';
+  const colors = ["#ff6b6b","#ffd93d","#6bcb77","#4d96ff","#ff6b9d","#c084fc"];
+  for (let i = 0; i < 40; i++) {
+    const p = document.createElement('div');
+    p.style.cssText = `position:absolute;width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;background:${colors[i%6]};left:${Math.random()*100}%;top:-10px;border-radius:${Math.random()>.5?"50%":"2px"};animation:confettiFall ${2+Math.random()*3}s ease-in forwards;animation-delay:${Math.random()*1.5}s;transform:rotate(${Math.random()*360}deg)`;
+    container.appendChild(p);
+  }
+  setTimeout(() => container.innerHTML = '', 5000);
+}
+
+// ═══════════════════ ANIMATED BACKGROUND ═══════════════════
+
+function generateBubbles(color, isBonus) {
+  let html = '';
+  for (let i = 0; i < 6; i++) {
+    html += `<div style="position:absolute;width:${120+i*60}px;height:${120+i*60}px;border-radius:50%;background:radial-gradient(circle,${isBonus?"rgba(189,147,249,0.15)":color+"22"} 0%,transparent 70%);left:${10+i*15}%;top:${5+(i%3)*30}%;animation:floatBubble ${6+i*2}s ease-in-out infinite alternate;animation-delay:${i*0.8}s"></div>`;
+  }
+  if (isBonus) {
+    for (let i = 0; i < 12; i++) {
+      html += `<div style="position:absolute;width:3px;height:3px;border-radius:50%;background:#bd93f9;left:${Math.random()*100}%;top:${Math.random()*100}%;animation:twinkle ${2+Math.random()*3}s ease-in-out infinite;animation-delay:${Math.random()*4}s;opacity:0.4"></div>`;
+    }
+  }
+  return html;
+}
+
+// ═══════════════════ DEMO MODE ═══════════════════
+
+function toggleDemo() {
+  const section = document.getElementById('demo-section');
+  const btn = document.getElementById('btn-demo');
+  if (section.style.display === 'none') {
+    section.style.display = 'block';
+    btn.textContent = '✕ Κλείσε Demo';
+  } else {
+    section.style.display = 'none';
+    btn.textContent = '📱 Demo Scan';
+  }
+}
+
+// ═══════════════════ INIT ═══════════════════
+
+function init() {
+  // Home background
+  document.getElementById('home-bg').style.cssText = 'position:fixed;inset:0;z-index:0;overflow:hidden;background:linear-gradient(135deg,#06060f 0%,#0a192f 100%)';
+  document.getElementById('home-bg').innerHTML = generateBubbles('#38bdf8', false);
+
+  // Logos on home
+  document.querySelectorAll('.logo-academy').forEach(el => el.innerHTML = renderLogo('academy', el.dataset.size || 'normal'));
+  document.querySelectorAll('.logo-iminder').forEach(el => el.innerHTML = renderLogo('iminder', el.dataset.size || 'normal'));
+
+  // Demo grid
+  document.getElementById('demo-grid').innerHTML = BOOTHS.map(b => `
+    <div style="background:rgba(255,255,255,0.03);border-radius:14px;border:1px solid ${b.accent}33;padding:20px;text-align:center;transition:all 0.2s" onmouseover="this.style.background='${b.accent}11';this.style.borderColor='${b.accent}66'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='${b.accent}33'">
+      <div style="font-size:36px;margin-bottom:8px">${b.icon}</div>
+      <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:4px">${b.name}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:14px">${b.category}</div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button onclick="showScan('${b.id}',1)" style="padding:8px 14px;font-size:12px;font-weight:600;background:${b.accent}22;color:${b.accent};border:1px solid ${b.accent}44;border-radius:8px;cursor:pointer">BC 1 (10π)</button>
+        <button onclick="showScan('${b.id}',2)" style="padding:8px 14px;font-size:12px;font-weight:600;background:rgba(189,147,249,0.15);color:#bd93f9;border:1px solid rgba(189,147,249,0.35);border-radius:8px;cursor:pointer">BC 2 (10π)</button>
+      </div>
+    </div>`).join('');
+
+  // How it works steps
+  document.querySelector('.steps-list').innerHTML = [
+    { t:"Σκανάρετε το QR Code στο περίπτερο → +10 πόντοι", i:"📱" },
+    { t:"Πάρτε διαφημιστικό & σκανάρετε το bonus QR → +10 πόντοι", i:"🎁" },
+    { t:"Εισάγετε τον αριθμό συμμετοχής σας", i:"🔢" },
+    { t:"Πατήστε Done — οι πόντοι αποθηκεύονται!", i:"✅" },
+    { t:"Μάξιμουμ 180 πόντοι (9×20)", i:"🏆" },
+  ].map(s => `<div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:14px">
+    <div style="min-width:36px;height:36px;border-radius:10px;background:rgba(56,189,248,0.1);display:flex;align-items:center;justify-content:center;font-size:18px">${s.i}</div>
+    <p style="color:rgba(255,255,255,0.6);font-size:14px;margin:8px 0 0;line-height:1.5">${s.t}</p>
+  </div>`).join('');
+
+  // URL hash routing for QR codes
+  function handleHash() {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    const boothId = params.get("booth");
+    const type = parseInt(params.get("type")) || 1;
+    if (boothId) showScan(boothId, type);
+  }
+  handleHash();
+  window.addEventListener("hashchange", handleHash);
+
+  // Admin tab styling
+  setAdminView('leaderboard');
+
+  // Start real-time listener when Firebase is ready
+  waitForFirebase().then(() => {
+    listenVisitors(data => {
+      adminData = data;
+      if (document.getElementById('page-admin').classList.contains('active')) renderAdmin();
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
