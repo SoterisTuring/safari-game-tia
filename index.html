@@ -620,7 +620,7 @@ function init() {
 
   // URL hash routing for QR codes
   function handleHash() {
-    const hash = window.location.hash.slice(1);
+    const hash = window.location.search.slice(1) || window.location.hash.slice(1);
     if (!hash) return;
     const params = new URLSearchParams(hash);
     const boothId = params.get("booth");
